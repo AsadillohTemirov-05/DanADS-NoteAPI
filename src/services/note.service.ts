@@ -6,6 +6,7 @@ import { ApiError } from "../utils/ApiError";
 
 export class NoteService {
 
+
   async createNote(title: string, content: string): Promise<INote> {
     return await Note.create({ title, content });
   }
@@ -28,7 +29,7 @@ export class NoteService {
         }
       : {};
 
-    const notes = await Note.find(filter)
+    const notes = await Note.find(filter) 
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -45,6 +46,8 @@ export class NoteService {
       },
     };
   }
+
+
 
   async getNoteById(id: string): Promise<INote> {
     const note = await Note.findById(id);
