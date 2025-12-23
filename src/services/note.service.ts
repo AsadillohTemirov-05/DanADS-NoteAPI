@@ -1,14 +1,16 @@
-import { Note, INote } from "../models/note.model";
+import { INote } from "../models/note.model";
 import { PaginationResult } from "../models/pagination.model";
+import { NoteRepository } from "../repositories/note.repo";
 import { ApiError } from "../utils/ApiError";
 
-
-
 export class NoteService {
+  private noteRepository = new NoteRepository();
 
-
-  async createNote(title: string, content: string): Promise<INote> {
-    return await Note.create({ title, content });
+  async createNote(
+    title: string,
+    content: string
+  ): Promise<INote> {
+    return await this.noteRepository.create({ title, content });
   }
 
   async getAllNotes(
@@ -16,7 +18,6 @@ export class NoteService {
     limit: number = 10,
     keyword?: string
   ): Promise<PaginationResult<INote>> {
-    
 
     const skip = (page - 1) * limit;
 
@@ -29,12 +30,10 @@ export class NoteService {
         }
       : {};
 
-    const notes = await Note.find(filter) 
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-
-    const total = await Note.countDocuments(filter);
+    const [notes, total] = await Promise.all([
+      this.noteRepository.findAll(filter, skip, limit),
+      this.noteRepository.count(filter),
+    ]);
 
     return {
       data: notes,
@@ -47,10 +46,8 @@ export class NoteService {
     };
   }
 
-
-
   async getNoteById(id: string): Promise<INote> {
-    const note = await Note.findById(id);
+    const note = await this.noteRepository.findById(id);
 
     if (!note) {
       throw new ApiError("Note not found", 404);
@@ -64,10 +61,7 @@ export class NoteService {
     data: Partial<Pick<INote, "title" | "content">>
   ): Promise<INote> {
 
-    const note = await Note.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    });
+    const note = await this.noteRepository.updateById(id, data);
 
     if (!note) {
       throw new ApiError("Note not found", 404);
@@ -77,7 +71,7 @@ export class NoteService {
   }
 
   async deleteNote(id: string): Promise<void> {
-    const note = await Note.findByIdAndDelete(id);
+    const note = await this.noteRepository.deleteById(id);
 
     if (!note) {
       throw new ApiError("Note not found", 404);
